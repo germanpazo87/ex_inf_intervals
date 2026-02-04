@@ -3,176 +3,183 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>LA MATRIU > Oracle d'Intervals</title>
+    <title>EX_INF_01 > L'Oracle dels Intervals</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
         :root {
-            --neon-blue: #00fff9; --neon-pink: #ff00cc; --dark-bg: #010409;
-            --panel-bg: rgba(13, 17, 23, 0.98); --neon-green: #39ff14;
+            --neon-blue: #00fff9; --neon-pink: #ff00cc; --neon-yellow: #fbbf24;
+            --dark-bg: #010409; --panel-bg: rgba(13, 17, 23, 0.98); --neon-green: #39ff14;
         }
-        body {
-            margin: 0; display: flex; height: 100vh; overflow: hidden;
-            background-color: var(--dark-bg); color: #e0ffff; font-family: 'Share Tech Mono', monospace;
-        }
-
+        body { margin: 0; display: flex; height: 100vh; overflow: hidden; background-color: var(--dark-bg); color: #e0ffff; font-family: 'Share Tech Mono', monospace; }
+        
         /* LAYOUT */
         .main-content { flex: 1; padding: 30px; overflow-y: auto; border-right: 1px solid rgba(0, 255, 249, 0.2); }
-        .ai-sidebar { width: 350px; background: var(--panel-bg); display: flex; flex-direction: column; border-left: 2px solid var(--neon-blue); }
+        .ai-sidebar { width: 380px; background: var(--panel-bg); display: flex; flex-direction: column; border-left: 2px solid var(--neon-blue); }
 
-        /* CARDS */
-        .card { background: rgba(255,255,255,0.03); border: 1px solid rgba(0, 255, 249, 0.2); padding: 20px; margin-bottom: 20px; }
-        .val-input { background: #000; border: 1px solid var(--neon-blue); color: #fff; padding: 10px; width: 100px; }
+        /* UI ELEMENTS */
+        header { border-left: 4px solid var(--neon-blue); padding: 10px 20px; margin-bottom: 20px; background: rgba(0, 255, 249, 0.03); }
+        .card { background: rgba(255,255,255,0.03); border: 1px solid rgba(0, 255, 249, 0.2); padding: 20px; margin-bottom: 20px; position: relative; }
+        .tool-id { font-family: 'Orbitron'; font-size: 0.65rem; color: var(--neon-blue); display: block; margin-bottom: 10px; }
         
-        /* SIDEBAR CHAT */
-        .chat-header { padding: 15px; border-bottom: 1px solid var(--neon-blue); font-family: 'Orbitron'; font-size: 0.8rem; background: rgba(0, 255, 249, 0.1); display: flex; justify-content: space-between; }
-        #chat-window { flex: 1; padding: 15px; overflow-y: auto; font-size: 0.85rem; display: flex; flex-direction: column; gap: 15px; }
-        
-        /* LOGIN OVERLAY */
-        #api-setup { padding: 20px; background: rgba(0, 0, 0, 0.8); height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 15px; text-align: center; }
+        .val-input { background: #000; border: 1px solid var(--neon-blue); color: #fff; padding: 10px; width: 100%; box-sizing: border-box; transition: 0.3s; }
+        .val-input.correct { border-color: var(--neon-green); box-shadow: 0 0 10px rgba(57, 255, 20, 0.2); }
+        .val-input.incorrect { border-color: var(--neon-pink); box-shadow: 0 0 10px rgba(255, 0, 204, 0.2); }
+
+        /* TABLE */
+        .preview-table { width: 100%; border-collapse: separate; border-spacing: 0 5px; margin-top: 15px; font-size: 0.85rem; }
+        .preview-table th { color: var(--neon-blue); text-align: left; padding: 8px; font-size: 0.7rem; }
+        .preview-table td { padding: 10px; border-top: 1px solid rgba(255,255,255,0.05); }
+        .row-ok { background: rgba(57, 255, 20, 0.05); border-left: 3px solid var(--neon-green); }
+        .row-err { background: rgba(255, 0, 204, 0.05); border-left: 3px solid var(--neon-pink); }
+
+        /* CHAT SIDEBAR */
+        #api-setup { padding: 30px; height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 20px; text-align: center; }
         #chat-interface { display: none; flex-direction: column; height: 100%; }
-
-        .msg { padding: 10px; border-radius: 5px; max-width: 85%; line-height: 1.4; }
-        .msg-ia { background: rgba(0, 255, 249, 0.1); align-self: flex-start; border-left: 3px solid var(--neon-blue); }
-        .msg-user { background: rgba(255, 0, 204, 0.1); align-self: flex-end; border-right: 3px solid var(--neon-pink); }
+        #chat-window { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; scroll-behavior: smooth; }
+        .msg { padding: 12px; border-radius: 5px; max-width: 85%; font-size: 0.85rem; line-height: 1.4; }
+        .msg-ia { background: rgba(0, 255, 249, 0.08); align-self: flex-start; border-left: 3px solid var(--neon-blue); }
+        .msg-user { background: rgba(255, 0, 204, 0.08); align-self: flex-end; border-right: 3px solid var(--neon-pink); }
         
-        .chat-input-area { padding: 15px; border-top: 1px solid rgba(0, 255, 249, 0.2); display: flex; gap: 10px; }
-        #user-query { flex: 1; background: #000; border: 1px solid var(--neon-blue); color: #fff; padding: 8px; font-family: 'Share Tech Mono'; }
-        
-        .btn-send { background: var(--neon-blue); border: none; padding: 8px 15px; cursor: pointer; font-family: 'Orbitron'; font-size: 0.7rem; color: #000; }
-        .btn-pink { background: var(--neon-pink); color: #fff; }
-        .key-input { width: 100%; box-sizing: border-box; background: #000; border: 1px solid var(--neon-pink); color: var(--neon-pink); padding: 10px; text-align: center; margin-bottom: 10px; }
+        .btn-cmd { background: transparent; border: 1px solid var(--neon-blue); color: var(--neon-blue); padding: 10px; cursor: pointer; font-family: 'Orbitron'; font-size: 0.7rem; transition: 0.3s; }
+        .btn-cmd:hover { background: var(--neon-blue); color: #000; }
+        .btn-pink { border-color: var(--neon-pink); color: var(--neon-pink); }
     </style>
 </head>
 <body>
 
 <div class="main-content">
-    <header style="margin-bottom: 30px;">
-        <h1 style="font-family: 'Orbitron'; color: var(--neon-blue); font-size: 1.4rem;">PROTOCOL_01: DISSENY_INTERVALS</h1>
+    <header>
+        <div style="font-size: 0.6rem; color: var(--neon-blue); letter-spacing: 2px;">CORE > SECTOR_03 > EX_INF_01</div>
+        <h1 style="margin-top:5px;">ESCÀNER D'INTERVALS</h1>
     </header>
 
     <div class="card">
-        <span style="color:var(--neon-blue)">[ DATA_STREAM ]</span>
-        <p id="data-list">Dades: 10, 12, 15, 18, 22, 29, 30, 33, 38, 41, 45</p>
-        <p>Límits: [10, 45] | k = 5</p>
+        <span class="tool-id">DADES_REBUDES // RAW_DATA</span>
+        <div style="display:flex; gap:10px; margin-bottom:15px;">
+            <input type="number" id="n-size" value="20" min="5" max="50" style="width:60px; background:#000; border:1px solid var(--neon-blue); color:#fff; padding:5px;">
+            <button class="btn-cmd" onclick="initProtocol()">GENERAR_NOVES_DADES</button>
+        </div>
+        <div id="data-display" style="color:var(--neon-yellow); font-size:0.9rem; margin-bottom:10px;"></div>
+        <div style="font-size:0.75rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px;">
+            ORDRE: <span id="sorted-display">--</span><br>
+            MÍN: <span id="real-min" style="color:var(--neon-pink)">--</span> | MÀX: <span id="real-max" style="color:var(--neon-pink)">--</span>
+        </div>
     </div>
 
-    <div class="card">
-        <p>Configura l'Inici ($x_{start}$) i l'Amplitud ($A$):</p>
-        <input type="number" id="in-start" class="val-input" placeholder="Inici">
-        <input type="number" id="in-amp" class="val-input" placeholder="Amp">
-        <button class="btn-send" style="background:transparent; color:var(--neon-blue); border:1px solid var(--neon-blue)" onclick="checkLogic()">VALIDAR</button>
-        <p id="feedback-local" style="margin-top:10px; font-size:0.8rem;"></p>
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+        <div class="card">
+            <span class="tool-id">CONFIG_INTERVALS // LOGIC</span>
+            <label style="font-size:0.7rem;">Nº CLASSES (k):</label>
+            <input type="number" id="in-k" class="val-input" value="5" oninput="updateUI()"><br><br>
+            <label style="font-size:0.7rem;">INICI ($x_{start}$):</label>
+            <input type="number" id="in-start" class="val-input" oninput="updateUI()"><br><br>
+            <label style="font-size:0.7rem;">AMPLITUD ($A$):</label>
+            <input type="number" id="in-amp" class="val-input" oninput="updateUI()">
+        </div>
+        <div class="card">
+            <span class="tool-id">VISTA_PRÈVIA // VALIDACIÓ</span>
+            <table class="preview-table">
+                <thead><tr><th>INTERVAL</th><th>$x_i$ (Marca)</th><th>ESTAT</th></tr></thead>
+                <tbody id="interval-body"></tbody>
+            </table>
+        </div>
     </div>
 </div>
 
 <div class="ai-sidebar">
     <div id="api-setup">
-        <div style="font-family: 'Orbitron'; font-size: 0.9rem; color: var(--neon-pink); margin-bottom: 10px;">ACCÉS RESTRINGIT</div>
-        <p style="font-size: 0.75rem;">Introdueix el teu codi d'accés al Core (API Key) per habilitar l'Oracle.</p>
-        <input type="password" id="api-key-input" class="key-input" placeholder="AIzaSy...">
-        <button class="btn-send btn-pink" onclick="saveKey()">DESBLOQUEJAR CORE</button>
+        <div style="font-family:'Orbitron'; color:var(--neon-pink)">ACCÉS RESTRINGIT</div>
+        <p style="font-size:0.75rem;">Introdueix l'API Key de Gemini:</p>
+        <input type="password" id="api-key-input" class="val-input" placeholder="AIzaSy...">
+        <button class="btn-cmd btn-pink" onclick="saveKey()">CONNECTAR AMB L'ORACLE</button>
     </div>
 
     <div id="chat-interface">
-        <div class="chat-header">
-            <span>ORACLE_CORE</span>
-            <span onclick="clearKey()" style="cursor:pointer; color:var(--neon-pink); font-size:0.6rem;">[RESET_KEY]</span>
-        </div>
-        <div id="chat-window">
-            <div class="msg msg-ia">Sincronització establerta. Sóc el Core. En què puc ajudar-te amb aquest protocol?</div>
-        </div>
-        <div class="chat-input-area">
-            <input type="text" id="user-query" placeholder="Escriu al sistema...">
-            <button class="btn-send" onclick="askGemini()">ASK</button>
+        <div class="chat-header">ORACLE_CORE <span onclick="clearKey()" style="cursor:pointer; color:var(--neon-pink)">[RESET]</span></div>
+        <div id="chat-window"></div>
+        <div style="padding:15px; border-top:1px solid rgba(0,255,249,0.2); display:flex; gap:5px;">
+            <input type="text" id="user-query" placeholder="Pregunta al Core..." style="flex:1; background:#000; border:1px solid var(--neon-blue); color:#fff; padding:8px;">
+            <button class="btn-cmd" onclick="askGemini()">ASK</button>
         </div>
     </div>
 </div>
 
 <script>
+    let rawData = [];
+    let stats = { min: 0, max: 0 };
     let API_KEY = localStorage.getItem('la_matriu_key');
 
-    // Comprovar si ja hi ha una clau en carregar
-    window.onload = function() {
-        if (API_KEY) {
-            showChat();
-        }
-    };
+    window.onload = () => { if(API_KEY) showChat(); initProtocol(); };
 
-    function saveKey() {
-        const input = document.getElementById('api-key-input').value;
-        if (input.length > 10) {
-            localStorage.setItem('la_matriu_key', input);
-            API_KEY = input;
-            showChat();
-        } else {
-            alert("Codi d'accés no vàlid.");
-        }
+    function initProtocol() {
+        const n = parseInt(document.getElementById('n-size').value);
+        rawData = Array.from({length: n}, () => Math.floor(Math.random() * 80) + 10);
+        const sorted = [...rawData].sort((a,b) => a-b);
+        stats.min = sorted[0]; stats.max = sorted[sorted.length-1];
+        document.getElementById('data-display').innerText = rawData.join(' , ');
+        document.getElementById('sorted-display').innerText = sorted.join(' , ');
+        document.getElementById('real-min').innerText = stats.min;
+        document.getElementById('real-max').innerText = stats.max;
+        updateUI();
     }
 
-    function clearKey() {
-        localStorage.removeItem('la_matriu_key');
-        location.reload();
-    }
-
-    function showChat() {
-        document.getElementById('api-setup').style.display = 'none';
-        document.getElementById('chat-interface').style.display = 'flex';
-    }
-
-    function checkLogic() {
+    function updateUI() {
+        const k = parseInt(document.getElementById('in-k').value);
         const start = parseFloat(document.getElementById('in-start').value);
         const amp = parseFloat(document.getElementById('in-amp').value);
-        const fb = document.getElementById('feedback-local');
-        if (start <= 10 && (start + 5*amp) >= 45) {
-            fb.innerHTML = "<span style='color:var(--neon-green)'>[SISTEMA_OK]</span> Cobertura validada.";
-        } else {
-            fb.innerHTML = "<span style='color:var(--neon-pink)'>[ERROR]</span> Les dades queden fora del rang.";
+        const body = document.getElementById('interval-body');
+        body.innerHTML = '';
+        if(isNaN(start) || isNaN(amp) || amp <= 0) return;
+
+        for(let i=0; i<k; i++) {
+            let li = start + (i*amp); let ls = li + amp;
+            let rowClass = (li <= stats.max && ls > stats.min) ? "row-ok" : "row-err";
+            body.innerHTML += `<tr class="${rowClass}">
+                <td>[${li}, ${ls})</td>
+                <td><input type="number" class="val-input xi-in" data-li="${li}" data-ls="${ls}" oninput="valXi(this)" style="width:60px; padding:2px;"></td>
+                <td style="font-size:0.6rem;">${(li <= stats.max && ls > stats.min) ? 'ACTIU' : 'SOBRANT'}</td>
+            </tr>`;
         }
     }
+
+    function valXi(el) {
+        const target = (parseFloat(el.dataset.li) + parseFloat(el.dataset.ls)) / 2;
+        el.className = "val-input xi-in " + (parseFloat(el.value) === target ? "correct" : "incorrect");
+    }
+
+    // LÒGICA IA
+    function saveKey() {
+        const key = document.getElementById('api-key-input').value;
+        if(key.length > 10) { localStorage.setItem('la_matriu_key', key); API_KEY = key; showChat(); }
+    }
+    function clearKey() { localStorage.removeItem('la_matriu_key'); location.reload(); }
+    function showChat() { document.getElementById('api-setup').style.display='none'; document.getElementById('chat-interface').style.display='flex'; }
 
     async function askGemini() {
-        const queryInput = document.getElementById('user-query');
-        const query = queryInput.value;
-        if (!query) return;
-
-        addMessage(query, 'user');
-        queryInput.value = '';
-
-        const context = `
-            CONTEXT: L'alumne fa un exercici d'intervals. DADES: [10-45]. K=5.
-            L'alumne ha posat: Inici=${document.getElementById('in-start').value}, Amp=${document.getElementById('in-amp').value}.
-            Ets un tutor socràtic Cyberpunk. No donis solucions, dona pistes curtes i tècniques.
-        `;
-
+        const qInput = document.getElementById('user-query');
+        const q = qInput.value; if(!q) return;
+        addMsg(q, 'user'); qInput.value = '';
+        
+        const context = `Ets el Core de la Matriu. Tutor socràtic d'estadística. Dades: ${rawData.join(',')}. Mín:${stats.min}, Màx:${stats.max}. NO donis solucions, dona pistes curtes Cyberpunk.`;
+        
         try {
-            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
-            const response = await fetch(url, {
+            // URL CORREGIDA A V1 PER EVITAR L'ERROR DE LA CAPTURA
+            const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+            const res = await fetch(url, {
                 method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    contents: [{ parts: [{ text: context + "\n\nPregunta: " + query }] }]
-                })
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ contents: [{ parts: [{ text: context + "\nAlumne: " + q }] }] })
             });
-
-            const data = await response.json();
-            if (data.error) throw new Error(data.error.message);
-            
-            const text = data.candidates[0].content.parts[0].text;
-            addMessage(text, 'ia');
-        } catch (error) {
-            addMessage("ERROR_CORE: " + error.message, 'ia');
-        }
+            const data = await res.json();
+            addMsg(data.candidates[0].content.parts[0].text, 'ia');
+        } catch(e) { addMsg("ERROR_CORE: Verifica la teva API Key i connexió.", 'ia'); }
     }
 
-    function addMessage(text, sender) {
-        const win = document.getElementById('chat-window');
-        const div = document.createElement('div');
-        div.className = `msg msg-${sender}`;
-        div.innerText = text;
-        win.appendChild(div);
-        win.scrollTop = win.scrollHeight;
+    function addMsg(t, s) {
+        const w = document.getElementById('chat-window');
+        const d = document.createElement('div'); d.className = `msg msg-${s}`; d.innerText = t;
+        w.appendChild(d); w.scrollTop = w.scrollHeight;
     }
 </script>
-
 </body>
 </html>
