@@ -1,40 +1,185 @@
-async function askGemini() {
-    const qInput = document.getElementById('user-query');
-    const q = qInput.value;
-    if (!q) return;
-
-    addMessage(q, 'user');
-    qInput.value = '';
-
-    // CONTEXT PER A L'ALUMNE
-    const context = `Ets el Core de la Matriu. Tutor socràtic d'estadística. 
-    L'alumne té un valor mínim de ${stats.min} i un màxim de ${stats.max}. 
-    Està intentant configurar ${document.getElementById('in-k').value} intervals.
-    NO donis solucions numèriques, dóna pistes curtes en to Cyberpunk.`;
-
-    try {
-        // ENDPOINT ACTUALITZAT A V1 (ESTABLE)
-        const url = `https://generativelanguage.googleapis.com/v1/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
-        
-        const response = await fetch(url, {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-                contents: [{ parts: [{ text: context + "\nPregunta de l'alumne: " + q }] }]
-            })
-        });
-
-        const data = await response.json();
-        
-        if (data.error) {
-            // Això ens dirà exactament què passa (clau mal posada, quota, etc.)
-            throw new Error(data.error.message);
+<!DOCTYPE html>
+<html lang="ca">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>LA MATRIU > Oracle d'Intervals</title>
+    <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
+    <style>
+        :root {
+            --neon-blue: #00fff9; --neon-pink: #ff00cc; --neon-yellow: #fbbf24;
+            --dark-bg: #010409; --panel-bg: rgba(13, 17, 23, 0.98); --neon-green: #39ff14;
         }
+        body { margin: 0; display: flex; height: 100vh; overflow: hidden; background-color: var(--dark-bg); color: #e0ffff; font-family: 'Share Tech Mono', monospace; }
         
-        const text = data.candidates[0].content.parts[0].text;
-        addMessage(text, 'ia');
-    } catch (error) {
-        addMessage("CRITICAL_ERROR: " + error.message, 'ia');
-        console.error("Detall del error:", error);
+        /* LAYOUT */
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; border-right: 1px solid rgba(0, 255, 249, 0.2); }
+        .ai-sidebar { width: 380px; background: var(--panel-bg); display: flex; flex-direction: column; border-left: 2px solid var(--neon-blue); }
+
+        /* UI ELEMENTS */
+        header { border-left: 4px solid var(--neon-blue); padding: 10px 20px; margin-bottom: 20px; background: rgba(0, 255, 249, 0.03); }
+        .card { background: rgba(255,255,255,0.03); border: 1px solid rgba(0, 255, 249, 0.2); padding: 20px; margin-bottom: 20px; }
+        .tool-id { font-family: 'Orbitron'; font-size: 0.65rem; color: var(--neon-blue); display: block; margin-bottom: 10px; }
+        
+        .val-input { background: #000; border: 1px solid var(--neon-blue); color: #fff; padding: 10px; width: 100%; box-sizing: border-box; }
+        .val-input.correct { border-color: var(--neon-green); box-shadow: 0 0 10px rgba(57, 255, 20, 0.2); }
+        .val-input.incorrect { border-color: var(--neon-pink); box-shadow: 0 0 10px rgba(255, 0, 204, 0.2); }
+
+        /* TABLE */
+        .preview-table { width: 100%; border-collapse: separate; border-spacing: 0 5px; margin-top: 15px; font-size: 0.85rem; }
+        .preview-table th { color: var(--neon-blue); text-align: left; padding: 8px; font-size: 0.7rem; }
+        .preview-table td { padding: 10px; border-top: 1px solid rgba(255,255,255,0.05); }
+
+        /* CHAT SIDEBAR */
+        #api-setup { padding: 30px; height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 20px; text-align: center; }
+        #chat-interface { display: none; flex-direction: column; height: 100%; }
+        #chat-window { flex: 1; padding: 15px; overflow-y: auto; display: flex; flex-direction: column; gap: 15px; }
+        .msg { padding: 12px; border-radius: 5px; max-width: 85%; font-size: 0.85rem; line-height: 1.4; }
+        .msg-ia { background: rgba(0, 255, 249, 0.08); align-self: flex-start; border-left: 3px solid var(--neon-blue); }
+        .msg-user { background: rgba(255, 0, 204, 0.08); align-self: flex-end; border-right: 3px solid var(--neon-pink); }
+        
+        .btn-cmd { background: transparent; border: 1px solid var(--neon-blue); color: var(--neon-blue); padding: 10px; cursor: pointer; font-family: 'Orbitron'; font-size: 0.7rem; transition: 0.3s; }
+        .btn-cmd:hover { background: var(--neon-blue); color: #000; }
+        .btn-pink { border-color: var(--neon-pink); color: var(--neon-pink); }
+    </style>
+</head>
+<body>
+
+<div class="main-content">
+    <header>
+        <div style="font-size: 0.6rem; color: var(--neon-blue); letter-spacing: 2px;">CORE > SECTOR_03 > EX_INF_01</div>
+        <h1 style="margin-top:5px;">ESCÀNER D'INTERVALS</h1>
+    </header>
+
+    <div class="card">
+        <span class="tool-id">DADES_REBUDES // RAW_DATA</span>
+        <button class="btn-cmd" onclick="initProtocol()" style="margin-bottom:15px;">RE-GENERAR DADES</button>
+        <div id="data-display" style="color:var(--neon-yellow); font-size:0.9rem; margin-bottom:10px; letter-spacing: 1px;"></div>
+        <div style="font-size:0.75rem; border-top:1px solid rgba(255,255,255,0.1); padding-top:10px;">
+            MÍN: <span id="real-min" style="color:var(--neon-pink)">--</span> | MÀX: <span id="real-max" style="color:var(--neon-pink)">--</span>
+        </div>
+    </div>
+
+    <div style="display:grid; grid-template-columns: 1fr 1fr; gap:20px;">
+        <div class="card">
+            <span class="tool-id">CONFIG_INTERVALS // LOGIC</span>
+            <label style="font-size:0.7rem;">INICI ($x_{start}$):</label>
+            <input type="number" id="in-start" class="val-input" placeholder="Ex: 10" oninput="updateUI()"><br><br>
+            <label style="font-size:0.7rem;">AMPLITUD ($A$):</label>
+            <input type="number" id="in-amp" class="val-input" placeholder="Ex: 5" oninput="updateUI()">
+        </div>
+        <div class="card">
+            <span class="tool-id">VISTA_PRÈVIA // VALIDACIÓ</span>
+            <table class="preview-table">
+                <thead><tr><th>INTERVAL</th><th>$x_i$ (Marca)</th></tr></thead>
+                <tbody id="interval-body"></tbody>
+            </table>
+        </div>
+    </div>
+</div>
+
+<div class="ai-sidebar">
+    <div id="api-setup">
+        <div style="font-family:'Orbitron'; color:var(--neon-pink)">ACCÉS RESTRINGIT</div>
+        <p style="font-size:0.75rem;">Introdueix l'API Key de Gemini:</p>
+        <input type="password" id="api-key-input" class="val-input" placeholder="AIzaSy...">
+        <button class="btn-cmd btn-pink" onclick="saveKey()">DESBLOQUEJAR CORE</button>
+    </div>
+
+    <div id="chat-interface">
+        <div style="padding:15px; border-bottom:1px solid var(--neon-blue); font-family:'Orbitron'; font-size:0.7rem; display:flex; justify-content:space-between;">
+            <span>ORACLE_CORE [ONLINE]</span>
+            <span onclick="clearKey()" style="cursor:pointer; color:var(--neon-pink)">[RESET]</span>
+        </div>
+        <div id="chat-window">
+            <div class="msg msg-ia">Conexió establerta. Sóc el Core. Analitzant els teus intervals...</div>
+        </div>
+        <div style="padding:15px; border-top:1px solid rgba(0,255,249,0.2); display:flex; gap:5px;">
+            <input type="text" id="user-query" placeholder="Pregunta al sistema..." style="flex:1; background:#000; border:1px solid var(--neon-blue); color:#fff; padding:8px;">
+            <button class="btn-cmd" onclick="askGemini()">ASK</button>
+        </div>
+    </div>
+</div>
+
+<script>
+    let rawData = [];
+    let stats = { min: 0, max: 0 };
+    let API_KEY = localStorage.getItem('la_matriu_key');
+
+    window.onload = () => { if(API_KEY) showChat(); initProtocol(); };
+
+    function initProtocol() {
+        rawData = Array.from({length: 15}, () => Math.floor(Math.random() * 50) + 10);
+        stats.min = Math.min(...rawData);
+        stats.max = Math.max(...rawData);
+        document.getElementById('data-display').innerText = rawData.join(' , ');
+        document.getElementById('real-min').innerText = stats.min;
+        document.getElementById('real-max').innerText = stats.max;
+        updateUI();
     }
-}
+
+    function updateUI() {
+        const start = parseFloat(document.getElementById('in-start').value);
+        const amp = parseFloat(document.getElementById('in-amp').value);
+        const body = document.getElementById('interval-body');
+        body.innerHTML = '';
+        if(isNaN(start) || isNaN(amp) || amp <= 0) return;
+
+        for(let i=0; i<5; i++) {
+            let li = start + (i*amp); let ls = li + amp;
+            body.innerHTML += `<tr>
+                <td>[${li}, ${ls})</td>
+                <td><input type="number" class="val-input xi-in" data-li="${li}" data-ls="${ls}" oninput="valXi(this)" style="width:70px; padding:2px;"></td>
+            </tr>`;
+        }
+    }
+
+    function valXi(el) {
+        const target = (parseFloat(el.dataset.li) + parseFloat(el.dataset.ls)) / 2;
+        el.className = "val-input xi-in " + (parseFloat(el.value) === target ? "correct" : "incorrect");
+    }
+
+    // LÒGICA IA CORREGIDA
+    function saveKey() {
+        const key = document.getElementById('api-key-input').value;
+        if(key.length > 10) { localStorage.setItem('la_matriu_key', key); API_KEY = key; showChat(); }
+    }
+    function clearKey() { localStorage.removeItem('la_matriu_key'); location.reload(); }
+    function showChat() { document.getElementById('api-setup').style.display='none'; document.getElementById('chat-interface').style.display='flex'; }
+
+    async function askGemini() {
+        const qInput = document.getElementById('user-query');
+        const q = qInput.value; if(!q) return;
+        addMsg(q, 'user'); qInput.value = '';
+        
+        // CANVI CRÍTIC: Tornem a v1beta per solucionar l'error 404 del model flash
+        const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+        
+        const context = `Ets el Core de la Matriu. Tutor socràtic d'estadística. Dades: ${rawData.join(',')}. Mín:${stats.min}, Màx:${stats.max}. No donis solucions, dona pistes curtes Cyberpunk.`;
+        
+        try {
+            const res = await fetch(url, {
+                method: 'POST',
+                headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ contents: [{ parts: [{ text: context + "\nAlumne: " + q }] }] })
+            });
+            const data = await res.json();
+            
+            if (data.error) {
+                addMsg("SISTEMA_ERROR: " + data.error.message, 'ia');
+            } else {
+                addMsg(data.candidates[0].content.parts[0].text, 'ia');
+            }
+        } catch(e) { 
+            addMsg("FALLADA_DE_PROTOCOL. Revisa la consola F12.", 'ia'); 
+        }
+    }
+
+    function addMsg(t, s) {
+        const w = document.getElementById('chat-window');
+        const d = document.createElement('div'); d.className = `msg msg-${s}`; d.innerText = t;
+        w.appendChild(d); w.scrollTop = w.scrollHeight;
+    }
+</script>
+</body>
+</html>
