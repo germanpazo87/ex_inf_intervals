@@ -3,270 +3,176 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>EX_INF_01 > Dissenyador d'Intervals</title>
+    <title>LA MATRIU > Oracle d'Intervals</title>
     <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&family=Share+Tech+Mono&display=swap" rel="stylesheet">
     <style>
         :root {
-            --neon-blue: #00fff9; --neon-pink: #ff00cc; --neon-yellow: #fbbf24;
-            --dark-bg: #010409; --panel-bg: rgba(13, 17, 23, 0.95); --neon-green: #39ff14;
+            --neon-blue: #00fff9; --neon-pink: #ff00cc; --dark-bg: #010409;
+            --panel-bg: rgba(13, 17, 23, 0.98); --neon-green: #39ff14;
         }
         body {
-            margin: 0; padding: 20px; background-color: var(--dark-bg);
-            background-image: radial-gradient(circle at 2px 2px, rgba(0, 255, 249, 0.05) 1px, transparent 0);
-            background-size: 40px 40px; color: #e0ffff; font-family: 'Share Tech Mono', monospace;
-            min-height: 100vh;
+            margin: 0; display: flex; height: 100vh; overflow: hidden;
+            background-color: var(--dark-bg); color: #e0ffff; font-family: 'Share Tech Mono', monospace;
         }
-        .container { max-width: 1150px; margin: 30px auto; position: relative; z-index: 10; }
+
+        /* LAYOUT */
+        .main-content { flex: 1; padding: 30px; overflow-y: auto; border-right: 1px solid rgba(0, 255, 249, 0.2); }
+        .ai-sidebar { width: 350px; background: var(--panel-bg); display: flex; flex-direction: column; border-left: 2px solid var(--neon-blue); }
+
+        /* CARDS */
+        .card { background: rgba(255,255,255,0.03); border: 1px solid rgba(0, 255, 249, 0.2); padding: 20px; margin-bottom: 20px; }
+        .val-input { background: #000; border: 1px solid var(--neon-blue); color: #fff; padding: 10px; width: 100px; }
         
-        header { border-left: 4px solid var(--neon-blue); padding: 15px 25px; margin-bottom: 20px; background: rgba(0, 255, 249, 0.03); }
-        .breadcrumb { font-size: 0.75rem; color: rgba(0, 255, 249, 0.6); letter-spacing: 2px; }
-        .breadcrumb a { color: var(--neon-blue); text-decoration: none; }
-        .breadcrumb span { margin: 0 5px; color: rgba(0, 255, 249, 0.3); }
-        h1 { font-family: 'Orbitron', sans-serif; margin: 5px 0 0 0; font-size: 1.6rem; text-shadow: 0 0 10px var(--neon-blue); }
-
-        .param-box { 
-            background: var(--panel-bg); border: 1px solid rgba(0, 255, 249, 0.2); 
-            padding: 20px; margin-bottom: 25px; display: flex; flex-wrap: wrap; gap: 20px; align-items: flex-end;
-            clip-path: polygon(0 0, 100% 0, 100% 100%, 20px 100%, 0 calc(100% - 20px));
-        }
-        .param-group { display: flex; flex-direction: column; gap: 5px; }
-        .param-group label { font-size: 0.65rem; color: var(--neon-blue); font-weight: bold; text-transform: uppercase; }
-        select, input, textarea { background: #000; border: 1px solid var(--neon-blue); color: var(--neon-blue); padding: 8px; font-family: 'Share Tech Mono', monospace; }
-
-        .tools-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 25px; margin-bottom: 25px; }
-        .tool-card { background: var(--panel-bg); border: 1px solid rgba(0, 255, 249, 0.2); padding: 25px; position: relative; }
-        .tool-id { font-family: 'Orbitron', sans-serif; font-size: 0.7rem; color: var(--neon-blue); margin-bottom: 15px; display: block; border-bottom: 1px solid rgba(0, 255, 249, 0.1); padding-bottom: 5px; }
+        /* SIDEBAR CHAT */
+        .chat-header { padding: 15px; border-bottom: 1px solid var(--neon-blue); font-family: 'Orbitron'; font-size: 0.8rem; background: rgba(0, 255, 249, 0.1); display: flex; justify-content: space-between; }
+        #chat-window { flex: 1; padding: 15px; overflow-y: auto; font-size: 0.85rem; display: flex; flex-direction: column; gap: 15px; }
         
-        .data-stream { background: rgba(0,0,0,0.3); padding: 15px; border-radius: 4px; color: var(--neon-yellow); font-size: 0.9rem; min-height: 40px; overflow-y: auto; max-height: 100px; }
+        /* LOGIN OVERLAY */
+        #api-setup { padding: 20px; background: rgba(0, 0, 0, 0.8); height: 100%; display: flex; flex-direction: column; justify-content: center; gap: 15px; text-align: center; }
+        #chat-interface { display: none; flex-direction: column; height: 100%; }
 
-        .input-block { margin-bottom: 25px; display: grid; grid-template-columns: 1.2fr 1.8fr; gap: 20px; align-items: center; }
-        .help-text { font-size: 0.75rem; color: rgba(255, 255, 255, 0.5); line-height: 1.3; }
-        .val-input { width: 100%; box-sizing: border-box; font-size: 1.1rem; padding: 12px; transition: 0.3s; background: #000; color: #fff; border: 1px solid #444; }
+        .msg { padding: 10px; border-radius: 5px; max-width: 85%; line-height: 1.4; }
+        .msg-ia { background: rgba(0, 255, 249, 0.1); align-self: flex-start; border-left: 3px solid var(--neon-blue); }
+        .msg-user { background: rgba(255, 0, 204, 0.1); align-self: flex-end; border-right: 3px solid var(--neon-pink); }
         
-        .val-input.correct { border-color: var(--neon-green) !important; box-shadow: 0 0 10px rgba(57, 255, 20, 0.2); }
-        .val-input.incorrect { border-color: var(--neon-pink) !important; box-shadow: 0 0 10px rgba(255, 0, 204, 0.2); }
-
-        /* TAULA DINÀMICA */
-        .preview-table { width: 100%; border-collapse: separate; border-spacing: 0 5px; margin-top: 15px; }
-        .preview-table th { color: var(--neon-blue); padding: 10px; text-align: left; font-size: 0.7rem; text-transform: uppercase; }
-        .preview-table td { padding: 12px; font-size: 0.9rem; border-top: 1px solid rgba(255,255,255,0.05); border-bottom: 1px solid rgba(255,255,255,0.05); }
-        .xi-input { width: 80px; padding: 5px; background: #000; border: 1px solid var(--neon-blue); color: #fff; text-align: center; }
-
-        .row-ok { background: rgba(57, 255, 20, 0.05); border-left: 4px solid var(--neon-green); }
-        .row-err { background: rgba(255, 0, 204, 0.05); border-left: 4px solid var(--neon-pink); }
-
-        .btn-cmd { background: transparent; border: 1px solid var(--neon-blue); color: var(--neon-blue); padding: 12px 20px; font-family: 'Orbitron', sans-serif; font-size: 0.75rem; cursor: pointer; transition: 0.3s; }
-        .btn-cmd:hover { background: var(--neon-blue); color: #000; box-shadow: 0 0 15px var(--neon-blue); }
-        .btn-solve { border-color: var(--neon-yellow); color: var(--neon-yellow); margin-top: 10px; }
-
-        .alert-msg { color: var(--neon-pink); font-weight: bold; font-size: 0.8rem; margin-top: 10px; text-transform: uppercase; display: none; }
-        .summary-badge { background: rgba(0,0,0,0.5); padding: 15px; border: 1px dashed var(--neon-blue); margin-top: 20px; }
-        .highlight { color: var(--neon-pink); font-weight: bold; }
-
-        #manual-input-area { width: 100%; height: 60px; display: none; margin-top: 10px; }
+        .chat-input-area { padding: 15px; border-top: 1px solid rgba(0, 255, 249, 0.2); display: flex; gap: 10px; }
+        #user-query { flex: 1; background: #000; border: 1px solid var(--neon-blue); color: #fff; padding: 8px; font-family: 'Share Tech Mono'; }
+        
+        .btn-send { background: var(--neon-blue); border: none; padding: 8px 15px; cursor: pointer; font-family: 'Orbitron'; font-size: 0.7rem; color: #000; }
+        .btn-pink { background: var(--neon-pink); color: #fff; }
+        .key-input { width: 100%; box-sizing: border-box; background: #000; border: 1px solid var(--neon-pink); color: var(--neon-pink); padding: 10px; text-align: center; margin-bottom: 10px; }
     </style>
 </head>
 <body>
 
-<div class="container">
-    <header>
-        <div class="breadcrumb">
-            <a href="https://germanpazo87.github.io/">CORE</a><span>&gt;</span>
-            <a href="https://germanpazo87.github.io/tractament_informacio/">SECTOR_03: Tractament de la informació</a><span>&gt;<a href="https://germanpazo87.github.io/estadistica/">PROTOCOL_1: Estadistica</a><span>&gt;</span>
-            EX_INF_01: Dissenyador de intervals
-        </div>
-        <h1>EXERCICI INFINIT 01 > DISSENYADOR DE INTERVALS</h1>
+<div class="main-content">
+    <header style="margin-bottom: 30px;">
+        <h1 style="font-family: 'Orbitron'; color: var(--neon-blue); font-size: 1.4rem;">PROTOCOL_01: DISSENY_INTERVALS</h1>
     </header>
 
-    <div class="param-box">
-        <div class="param-group">
-            <label>ORIGEN_DADES:</label>
-            <select id="source-type" onchange="toggleManual()">
-                <option value="random">GENERADOR_ALEATORI</option>
-                <option value="manual">INSERCIÓ_MANUAL</option>
-            </select>
-        </div>
-        <div class="param-group">
-            <label>MOSTRA (N):</label>
-            <input type="number" id="n-size" value="20" min="5" max="50">
-        </div>
-        <button class="btn-cmd" onclick="initProtocol()">GENERAR_NOU_REPTE</button>
-        <textarea id="manual-input-area" placeholder="Ex: 12, 45, 2, 33..."></textarea>
+    <div class="card">
+        <span style="color:var(--neon-blue)">[ DATA_STREAM ]</span>
+        <p id="data-list">Dades: 10, 12, 15, 18, 22, 29, 30, 33, 38, 41, 45</p>
+        <p>Límits: [10, 45] | k = 5</p>
     </div>
 
-    <div class="tools-grid">
-        <div class="tool-card">
-            <span class="tool-id">DATA_INPUT // SOURCE_STREAM</span>
-            <div id="data-display" class="data-stream">Esperant dades...</div>
-            <div style="margin-top: 15px; font-size: 0.75rem;">ORDRE ASCENDENT: <br><span id="sorted-display" style="color: var(--neon-blue);">--</span></div>
-            <div class="summary-badge">
-                LÍMITS REALS: <br>
-                MÍNIM: <span id="real-min" class="highlight">--</span> | 
-                MÀXIM: <span id="real-max" class="highlight">--</span>
-            </div>
-        </div>
+    <div class="card">
+        <p>Configura l'Inici ($x_{start}$) i l'Amplitud ($A$):</p>
+        <input type="number" id="in-start" class="val-input" placeholder="Inici">
+        <input type="number" id="in-amp" class="val-input" placeholder="Amp">
+        <button class="btn-send" style="background:transparent; color:var(--neon-blue); border:1px solid var(--neon-blue)" onclick="checkLogic()">VALIDAR</button>
+        <p id="feedback-local" style="margin-top:10px; font-size:0.8rem;"></p>
+    </div>
+</div>
 
-        <div class="tool-card">
-            <span class="tool-id">INTERVAL_DESIGN // ACTION_MODULE</span>
-            <div class="input-block">
-                <div><label>Nº CLASSES (k):</label><input type="number" id="in-k" class="val-input" value="5" oninput="updateUI()"></div>
-                <div class="help-text">Quants intervals vols?</div>
-            </div>
-            <div class="input-block">
-                <div><label>INICI ($x_{start}$):</label><input type="number" id="in-start" class="val-input" oninput="updateUI()"></div>
-                <div class="help-text">Valor d'inici (ha de ser $\le$ al mínim).</div>
-            </div>
-            <div class="input-block">
-                <div><label>AMPLITUD ($A$):</label><input type="number" id="in-amp" class="val-input" oninput="updateUI()"></div>
-                <div class="help-text">Mida de cada interval.</div>
-            </div>
-            <button class="btn-cmd btn-solve" onclick="solveProtocol()">AUTO_SOLVE</button>
-            <div id="coverage-error" class="alert-msg">⚠️ ERROR: ELS INTERVALS NO COBREIXEN TOTES LES DADES</div>
-        </div>
+<div class="ai-sidebar">
+    <div id="api-setup">
+        <div style="font-family: 'Orbitron'; font-size: 0.9rem; color: var(--neon-pink); margin-bottom: 10px;">ACCÉS RESTRINGIT</div>
+        <p style="font-size: 0.75rem;">Introdueix el teu codi d'accés al Core (API Key) per habilitar l'Oracle.</p>
+        <input type="password" id="api-key-input" class="key-input" placeholder="AIzaSy...">
+        <button class="btn-send btn-pink" onclick="saveKey()">DESBLOQUEJAR CORE</button>
     </div>
 
-    <div class="tool-card" style="clip-path: none;">
-        <span class="tool-id">INTERVAL_PREVIEW // CALCULA LES MARQUES DE CLASSE</span>
-        <table class="preview-table">
-            <thead>
-                <tr>
-                    <th>CLASSE</th>
-                    <th>INTERVAL [Li, Ls)</th>
-                    <th>MARCA ($x_i$) <span title="Punt mig de l'interval">(?)</span></th>
-                    <th>ESTAT</th>
-                </tr>
-            </thead>
-            <tbody id="interval-body"></tbody>
-        </table>
-
-        <div id="final-validation" style="margin-top:30px; text-align: right; display: none;">
-            <button class="btn-cmd" style="border-color: var(--neon-pink); color: var(--neon-pink);" onclick="goToNext()">CONFIRMAR I CONTINUAR ></button>
+    <div id="chat-interface">
+        <div class="chat-header">
+            <span>ORACLE_CORE</span>
+            <span onclick="clearKey()" style="cursor:pointer; color:var(--neon-pink); font-size:0.6rem;">[RESET_KEY]</span>
+        </div>
+        <div id="chat-window">
+            <div class="msg msg-ia">Sincronització establerta. Sóc el Core. En què puc ajudar-te amb aquest protocol?</div>
+        </div>
+        <div class="chat-input-area">
+            <input type="text" id="user-query" placeholder="Escriu al sistema...">
+            <button class="btn-send" onclick="askGemini()">ASK</button>
         </div>
     </div>
 </div>
 
 <script>
-    let rawData = [];
-    let stats = { min: 0, max: 0 };
+    let API_KEY = localStorage.getItem('la_matriu_key');
 
-    function toggleManual() {
-        document.getElementById('manual-input-area').style.display = (document.getElementById('source-type').value === 'manual') ? 'block' : 'none';
-    }
-
-    function initProtocol() {
-        const source = document.getElementById('source-type').value;
-        const n = Math.min(parseInt(document.getElementById('n-size').value) || 20, 50);
-        
-        if (source === 'random') {
-            const scales = [10, 50, 100, 500];
-            const base = scales[Math.floor(Math.random() * scales.length)];
-            rawData = Array.from({ length: n }, () => Math.floor(Math.random() * base));
-        } else {
-            rawData = document.getElementById('manual-input-area').value.split(',').map(x => parseFloat(x.trim())).filter(x => !isNaN(x));
+    // Comprovar si ja hi ha una clau en carregar
+    window.onload = function() {
+        if (API_KEY) {
+            showChat();
         }
+    };
 
-        const sorted = [...rawData].sort((a, b) => a - b);
-        stats.min = sorted[0]; stats.max = sorted[sorted.length - 1];
-        document.getElementById('data-display').innerText = rawData.join(' , ');
-        document.getElementById('sorted-display').innerText = sorted.join(' , ');
-        document.getElementById('real-min').innerText = stats.min;
-        document.getElementById('real-max').innerText = stats.max;
-        updateUI();
+    function saveKey() {
+        const input = document.getElementById('api-key-input').value;
+        if (input.length > 10) {
+            localStorage.setItem('la_matriu_key', input);
+            API_KEY = input;
+            showChat();
+        } else {
+            alert("Codi d'accés no vàlid.");
+        }
     }
 
-    function solveProtocol() {
-        const k = parseInt(document.getElementById('in-k').value) || 5;
-        const start = Math.floor(stats.min / 2) * 2;
-        const amp = Math.ceil((stats.max - start) / k);
-        document.getElementById('in-start').value = start;
-        document.getElementById('in-amp').value = amp;
-        updateUI();
+    function clearKey() {
+        localStorage.removeItem('la_matriu_key');
+        location.reload();
     }
 
-    function updateUI() {
-        const k = parseInt(document.getElementById('in-k').value);
+    function showChat() {
+        document.getElementById('api-setup').style.display = 'none';
+        document.getElementById('chat-interface').style.display = 'flex';
+    }
+
+    function checkLogic() {
         const start = parseFloat(document.getElementById('in-start').value);
         const amp = parseFloat(document.getElementById('in-amp').value);
-        const body = document.getElementById('interval-body');
-        const err = document.getElementById('coverage-error');
-        
-        body.innerHTML = '';
-        if (isNaN(start) || isNaN(amp) || amp <= 0 || isNaN(k) || k <= 0) {
-            err.style.display = 'none';
-            return;
+        const fb = document.getElementById('feedback-local');
+        if (start <= 10 && (start + 5*amp) >= 45) {
+            fb.innerHTML = "<span style='color:var(--neon-green)'>[SISTEMA_OK]</span> Cobertura validada.";
+        } else {
+            fb.innerHTML = "<span style='color:var(--neon-pink)'>[ERROR]</span> Les dades queden fora del rang.";
         }
+    }
 
-        const endTotal = start + (k * amp);
-        const coversMin = start <= stats.min;
-        const coversMax = endTotal >= stats.max;
+    async function askGemini() {
+        const queryInput = document.getElementById('user-query');
+        const query = queryInput.value;
+        if (!query) return;
 
-        // Feedback visual d'entrades
-        document.getElementById('in-start').className = 'val-input ' + (coversMin ? 'correct' : 'incorrect');
-        document.getElementById('in-amp').className = 'val-input ' + (coversMax ? 'correct' : 'incorrect');
-        err.style.display = coversMax ? 'none' : 'block';
+        addMessage(query, 'user');
+        queryInput.value = '';
 
-        for (let i = 0; i < k; i++) {
-            let li = start + (i * amp);
-            let ls = li + amp;
-            let rowClass = (li <= stats.max && ls > stats.min) ? "row-ok" : "row-err";
+        const context = `
+            CONTEXT: L'alumne fa un exercici d'intervals. DADES: [10-45]. K=5.
+            L'alumne ha posat: Inici=${document.getElementById('in-start').value}, Amp=${document.getElementById('in-amp').value}.
+            Ets un tutor socràtic Cyberpunk. No donis solucions, dona pistes curtes i tècniques.
+        `;
+
+        try {
+            const url = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${API_KEY}`;
+            const response = await fetch(url, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    contents: [{ parts: [{ text: context + "\n\nPregunta: " + query }] }]
+                })
+            });
+
+            const data = await response.json();
+            if (data.error) throw new Error(data.error.message);
             
-            body.innerHTML += `
-                <tr class="${rowClass}">
-                    <td>CLASSE ${i+1}</td>
-                    <td>[${li.toFixed(1)}, ${ls.toFixed(1)})</td>
-                    <td><input type="number" class="xi-input" data-li="${li}" data-ls="${ls}" oninput="validateXi(this)"></td>
-                    <td class="xi-status">Pendent...</td>
-                </tr>`;
+            const text = data.candidates[0].content.parts[0].text;
+            addMessage(text, 'ia');
+        } catch (error) {
+            addMessage("ERROR_CORE: " + error.message, 'ia');
         }
-        checkFinal();
     }
 
-    function validateXi(el) {
-        const li = parseFloat(el.getAttribute('data-li'));
-        const ls = parseFloat(el.getAttribute('data-ls'));
-        const target = (li + ls) / 2;
-        const val = parseFloat(el.value);
-        const statusCell = el.parentElement.nextElementSibling;
-
-        if (val === target) {
-            el.className = "xi-input correct";
-            statusCell.innerText = "✅ CORRECTE";
-            statusCell.style.color = "var(--neon-green)";
-        } else {
-            el.className = "xi-input incorrect";
-            statusCell.innerText = "❌ ERROR";
-            statusCell.style.color = "var(--neon-pink)";
-        }
-        checkFinal();
+    function addMessage(text, sender) {
+        const win = document.getElementById('chat-window');
+        const div = document.createElement('div');
+        div.className = `msg msg-${sender}`;
+        div.innerText = text;
+        win.appendChild(div);
+        win.scrollTop = win.scrollHeight;
     }
-
-    function checkFinal() {
-        const k = parseInt(document.getElementById('in-k').value);
-        const start = parseFloat(document.getElementById('in-start').value);
-        const amp = parseFloat(document.getElementById('in-amp').value);
-        const endTotal = start + (k * amp);
-        
-        const inputs = document.querySelectorAll('.xi-input');
-        let allXiOk = inputs.length > 0;
-        inputs.forEach(el => {
-            const li = parseFloat(el.getAttribute('data-li'));
-            const ls = parseFloat(el.getAttribute('data-ls'));
-            if (parseFloat(el.value) !== (li+ls)/2) allXiOk = false;
-        });
-
-        const coversAll = (start <= stats.min && endTotal >= stats.max);
-        document.getElementById('final-validation').style.display = (coversAll && allXiOk) ? 'block' : 'none';
-    }
-
-    function goToNext() {
-        const dataStr = encodeURIComponent(rawData.join(','));
-        const start = document.getElementById('in-start').value;
-        const amp = document.getElementById('in-amp').value;
-        const k = document.getElementById('in-k').value;
-        window.location.href = `https://germanpazo87.github.io/ex_inf_frequencies/?data=${dataStr}&start=${start}&amp=${amp}&k=${k}`;
-    }
-
-    window.onload = initProtocol;
 </script>
+
 </body>
 </html>
